@@ -1,0 +1,199 @@
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.1.0/mapbox-gl.js'></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js"></script>
+
+<div class="topnav">
+  <a href="/logout">Logout</a>
+  <a href="/signup">Register</a>
+  <a href="/login">Login</a>
+  <form id="button-form" action="/addshop">
+    <button class="addshop" type="submit">add shop</button>
+  </form>
+</div>
+
+<h1>{{title}}
+</h1>
+
+<div>
+  <div>
+    <img src="images/Asset 2.png" alt="barista image">
+  </div>
+  <div id="logo">
+    <img src="images/text.png" alt="text">
+  </div>
+</div>
+
+
+{{!-- <div id='map' style='width: 100vw; height: 100vh; margin:50px auto;'></div> --}}
+
+<div id='map' style='width: auto; height: 100vh; margin:50px auto;'></div>
+
+<div id='geocoder' class='geocoder'></div>
+
+<script>
+
+  mapboxgl.accessToken = 'pk.eyJ1IjoiZWFicmFtb3YiLCJhIjoiY2p4dnhnYjBhMDhsaDNocDY4eGVzejI0eiJ9.Zu20vLXuGi1UeAobfldwfw';
+  var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/eabramov/cjxvxi4fx074v1cr007bnuzcj',
+    center: [13.405, 52.52],
+    zoom: 11.15
+  });
+
+  const createMarker = () => {
+    var el = document.createElement('div');
+    el.className = 'marker';
+    el.style.backgroundImage = `url('/images/marker.png')`;
+    el.style.backgroundSize = "cover"
+    el.style.backgroundPosition = "center"
+    el.style.width = '35px';
+    el.style.height = '42px';
+    return el
+  }
+
+
+  axios.get('http://localhost:3000/api/shops').then(response => {
+    const shops = response.data;
+
+
+
+    var geocoder = new MapboxGeocoder({
+      accessToken: mapboxgl.accessToken,
+      mapboxgl: mapboxgl,
+      marker: false,
+    });
+    document.getElementById('geocoder').appendChild(geocoder.onAdd(map));
+
+
+    // Add the geocoder to the map
+
+    map.addControl(new mapboxgl.GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: true
+      },
+      trackUserLocation: true
+    }));
+    map.addControl(new mapboxgl.FullscreenControl());
+
+
+  }).catch(err => {
+    console.log(err)
+  })
+
+  const getCoffeeShops = () => {
+
+    const center = Object.values(map.getCenter())
+    axios.get(`http://localhost:3000/api/coffee/${center.join(',')}`)
+      .then(response => {
+        const shops = response.data;
+
+        axios.get("http://localhost:3000/api/shops").then((database) => {
+          let local = database.data
+          shops.forEach(coffee => {
+            let foundIndex = local.findIndex(localshop => localshop.name == coffee.name)
+            let imageLink = ""
+            console.log(foundIndex)
+            if (coffee.photos && coffee.photos[0] && coffee.photos[0].photo_reference) {
+              imageLink = `src="https://maps.googleapis.com/maps/api/place/photo?photoreference=${coffee.photos[0].photo_reference}&sensor=false&maxheight=125&maxwidth=125&key=AIzaSyBz8nWY0YYYkOlWlEIqWMeOT-rZghCG_bE"`
+            }
+
+            let googleLink = `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${coffee.place_id}`
+
+            if (foundIndex == -1) {
+              var popup = new mapboxgl.Popup({ offset: 0, className: 'my-class' })
+                .setHTML(`<div class="popup"> <img ${imageLink} alt=""><br><a href=${googleLink}>${coffee.name}</a><p>${coffee.vicinity}</p> <p>rating: ${coffee.rating}</p></div>`)
+                .setMaxWidth("none")
+            } else {
+              let matchedShop = local[foundIndex]
+              let completeString = ""
+              let msg = ""
+              for (let props in matchedShop) {
+                if (matchedShop[props] === true) {
+                  switch (props) {
+                    case "alternativemilk":
+                      msg = "Alternative milk is here:"
+                      break;
+                    case "coconutmilk":
+                      msg = "Coconut milk"
+                      break;
+                    case "soymilk":
+                      msg = "Soy milk"
+                      break;
+                    case "oatmilk":
+                      msg = "Oat milk"
+                      break;
+                    case "almondmilk":
+                      msg = "Almond milk"
+                      break;
+                    case "Wifi":
+                      msg = "Get connected! This shop has wifi."
+                      break;
+                    case "Seating":
+                      msg = "Seating available. Check out the pictures to see the layout! "
+                      break;
+                    case "Food":
+                      msg = "Offers food options:"
+                      break;
+                    case "Bfast":
+                      msg = "Breakfast"
+                      break;
+                    case "Pastries":
+                      msg = "Pastries"
+                      break;
+                    case "GF":
+                      msg = "Gluten free options available."
+                      break;
+                    case "Vegan":
+                      msg = "Vegan options available"
+                      break;
+                  }
+                  completeString += `<div>${msg}</div>`
+                }
+              }
+              console.log(coffee)
+              var popup = new mapboxgl.Popup({ offset: 0, className: 'my-class' })
+                .setHTML(`<div class="popup"> <img ${imageLink} alt=""><br><a href=${googleLink}>${coffee.name}</a><p>${coffee.vicinity}</p> <p> rating: ${coffee.rating}</p> <p>${completeString}</p></div>`)
+
+                .setMaxWidth("none")
+
+            }
+
+
+            const coordinates = Object.values(coffee.geometry.location).reverse();
+            const el = createMarker()
+            let marker = new mapboxgl.Marker(el).setLngLat(coordinates).setPopup(popup).addTo(map);
+          })
+
+        })
+      }).catch(err => {
+        console.log(err)
+      })
+  }
+
+
+  map.on("moveend", () => {
+    getCoffeeShops()
+  })
+
+
+  getCoffeeShops()
+
+  const getGooglePopups = () => {
+    const center = Object.values(map.getCenter())
+    axios.get(`http://localhost:3000/api/coffee/${center.join(',')}`).then(response => {
+      const shops = response.data;
+
+      shops.forEach(shop => {
+        const coordinates = Object.values(coffee.geometry.location).reverse();
+
+
+
+
+        const el = createMarker()
+        let marker = new mapboxgl.Marker(el).setLngLat(coordinates).setPopup(popup).addTo(map);
+
+      })
+    })
+  }
+
+
+</script>

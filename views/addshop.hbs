@@ -1,0 +1,48 @@
+<div class=box>
+
+  <form id="main-form" action="/addshop" method="POST">
+    <label for="name">name:</label>
+    <input list="datalist" id="name" name="name" />
+    <datalist id="datalist">
+    </datalist>
+    <datalist id="json-datalist"></datalist>
+
+    <div class='checks'>
+      <input type="checkbox" name="alternativemilk"> Alternative Milk<br>
+      <input type="checkbox" name="coconutmilk"> Coconut Milk<br>
+      <input type="checkbox" name="soymilk"> Soy Milk<br>
+      <input type="checkbox" name="oatmilk"> Oat Milk<br>
+      <input type="checkbox" name="almondmilk"> Almond Milk <br>
+      <input type="checkbox" name="Wifi"> Has Wifi <br>
+      <input type="checkbox" name="Seating"> Seating<br>
+      <input type="checkbox" name="Food"> Food Offered<br>
+      <input type="checkbox" name="Bfast"> Only Breakfast<br>
+      <input type="checkbox" name="Pastries"> Only Pastries<br>
+      <input type="checkbox" name="GF"> Gluten Free<br>
+      <input type="checkbox" name="Vegan">Vegan Friendly<br>
+    </div>
+    <button class="addshop" type="submit">add shop</button>
+  </form>
+
+</div>
+
+<script>
+  document.getElementById("name").oninput = () => {
+    const query = document.getElementById("name").value;
+    const url = "http://localhost:3000/coffeename/?name=" + encodeURI(query);
+
+    axios.get(url)
+      .then(response => {
+        document.querySelector("#datalist").innerHTML = response.data.map(el => `<option value="${el.description}">`).join("")
+
+      })
+      .catch(err => {
+        console.log(err);
+      });
+
+  };
+
+  let dataList = document.getElementById('json-datalist');
+  let input = document.getElementById('name');
+
+</script>

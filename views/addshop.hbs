@@ -29,7 +29,7 @@
 <script>
   document.getElementById("name").oninput = () => {
     const query = document.getElementById("name").value;
-    const url = "http://localhost:3000/coffeename/?name=" + encodeURI(query);
+    const url = "https://findyourbarista.herokuapp.com/coffeename/?name=" + encodeURI(query);
 
     axios.get(url)
       .then(response => {
